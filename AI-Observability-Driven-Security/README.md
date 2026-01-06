@@ -406,8 +406,9 @@ Capture the LB IP of the service. This will be used later to send a request to t
 ```
 export INGRESS_GW_ADDRESS=$(kubectl get svc -n gloo-system agentgateway -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
 echo $INGRESS_GW_ADDRESS
+```
 
-8. Test the LLM connectivity
+Test the LLM connectivity
 ```
 curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v \ -H content-type:application/json -H x-api-key:$ANTHROPIC_API_KEY -H "anthropic-version: 2023-06-01" -d '{
   "model": "claude-sonnet-4-5",
@@ -424,14 +425,14 @@ curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v \ -H content-type:application/json 
 }' | jq
 ```
 
-9. If you check the agentgateway Pod logs, you'll see the rate limit error.
+If you check the agentgateway Pod logs, you'll see the rate limit error.
 
 ```
 kubectl logs -n gloo-system AGENTGATEWAY_POD --tail=50 | grep -i "request\|error\|anthropic"
 ```
 
 ```
-2025-10-20T16:08:59.886579Z     info    request gateway=kgateway-gloo/agentgateway listener=http route=gloo-system/claude src.addr=10.142.0.25:42187 http.method=POST http.host=34.148.15.158 http.path=/anthropic http.version=HTTP/1.1 http.status=429 error="rate limit exceeded" duration=0ms
+2025-10-20T16:08:59.886579Z     info    request gateway=agentgateway listener=http route=gloo-system/claude src.addr=10.142.0.25:42187 http.method=POST http.host=34.148.15.158 http.path=/anthropic http.version=HTTP/1.1 http.status=429 error="rate limit exceeded" duration=0ms
 ```
 
 
