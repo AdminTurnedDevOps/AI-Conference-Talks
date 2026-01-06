@@ -228,7 +228,7 @@ helm install kube-prometheus -n monitoring prometheus-community/kube-prometheus-
 ```
 
 Username: admin
-Password: `kubectl get secret kube-prometheus-stack-grafana -n monitoring -o jsonpath='{.data.admin-password}' | base64 --decode`
+Password: `kubectl get secret kube-prometheus-grafana -n monitoring -o jsonpath='{.data.admin-password}' | base64 --decode`
 
 
 ------------------------------------------------------------------------------------------------------------
