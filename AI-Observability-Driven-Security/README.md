@@ -227,6 +227,9 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm install kube-prometheus -n monitoring prometheus-community/kube-prometheus-stack --create-namespace
 ```
 
+Username: admin
+Password: `kubectl get secret kube-prometheus-stack-grafana -n monitoring -o jsonpath='{.data.admin-password}' | base64 --decode`
+
 
 ------------------------------------------------------------------------------------------------------------
 
@@ -341,6 +344,8 @@ curl "$INGRESS_GW_ADDRESS:8080/anthropic" -H content-type:application/json -H "a
 }' | jq
 ```
 
+------------------------------------------------------------------------------------------------------------
+
 ## Observability
 
 1. Deploy a Pod Monitor
@@ -378,6 +383,8 @@ To log into the Grafana UI:
 
 1. Username: admin
 2. Password: `kubectl get secret kube-prometheus-grafana -n monitoring -o jsonpath='{.data.admin-password}' | base64 --decode`
+
+------------------------------------------------------------------------------------------------------------
 
 ## Rate Limiting
 
@@ -435,6 +442,7 @@ kubectl logs -n gloo-system AGENTGATEWAY_POD --tail=50 | grep -i "request\|error
 2025-10-20T16:08:59.886579Z     info    request gateway=agentgateway listener=http route=gloo-system/claude src.addr=10.142.0.25:42187 http.method=POST http.host=34.148.15.158 http.path=/anthropic http.version=HTTP/1.1 http.status=429 error="rate limit exceeded" duration=0ms
 ```
 
+------------------------------------------------------------------------------------------------------------
 
 ## Prompt Guards
 
@@ -480,6 +488,7 @@ curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v -H content-type:application/json -H
 }' | jq
 ```
 
+------------------------------------------------------------------------------------------------------------
 
 ## MCP Auth
 
@@ -598,7 +607,7 @@ spec:
         - 'mcp.tool.name == ""'
 EOF
 ```
-
+------------------------------------------------------------------------------------------------------------
 
 ## MCP + oAuth
 
