@@ -499,7 +499,7 @@ spec:
         - response:
             message: "Rejected due to inappropriate content"
           regex:
-            action: REJECT
+            action: Reject
             matches:
             - "credit card"
 EOF
@@ -518,6 +518,15 @@ curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v -H content-type:application/json -H
     }
   ]
 }' | jq
+```
+
+You'll see an output similar to the below:
+
+```
+* upload completely sent off: 204 bytes
+< HTTP/1.1 403 Forbidden
+< content-length: 37
+< date: Tue, 06 Jan 2026 14:05:39 GMT
 ```
 
 ------------------------------------------------------------------------------------------------------------
