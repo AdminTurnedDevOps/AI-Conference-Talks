@@ -359,12 +359,16 @@ metadata:
   name: agentgateway
   namespace: monitoring
   labels:
-    app: agentgateway
+    app: agentgateway-route
     release: kube-prometheus
 spec:
+  namespaceSelector:
+    matchNames:
+      - agentgateway-system
   selector:
     matchLabels:
       gateway.networking.k8s.io/gateway-class-name: agentgateway
+      #gateway.networking.k8s.io/gateway-name: agentgateway-route
   podMetricsEndpoints:
   - port: metrics
     path: /metrics
@@ -373,7 +377,24 @@ spec:
 EOF
 ```
 
-2. Check the dashboard for metrics
+2. Run the `curl` again
+```
+curl "$INGRESS_GW_ADDRESS:8080/anthropic" -H content-type:application/json -H "anthropic-version: 2023-06-01" -d '{
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a skilled cloud-native network engineer."
+    },
+    {
+      "role": "user",
+      "content": "Write me a paragraph containing the best way to think about Istio Ambient Mesh"
+    }
+  ]
+}' | jq
+
+```
+
+3. Check the dashboard for metrics
 
 ```
 kubectl --namespace monitoring port-forward svc/kube-prometheus-grafana 3000:80
@@ -400,22 +421,21 @@ spec:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
       name: claude
-  rateLimit:
-    local:
-      tokenBucket:
-        maxTokens: 1
-        tokensPerFill: 1
-        fillInterval: 100s
+  traffic:
+    rateLimit:
+      local:
+        - requests: 1
+          unit: Minutes
 EOF
 ```
 
 Capture the LB IP of the service. This will be used later to send a request to the LLM.
 ```
-export INGRESS_GW_ADDRESS=$(kubectl get svc -n gloo-system agentgateway -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
+export INGRESS_GW_ADDRESS=$(kubectl get svc -n agentgateway-system agentgateway-route -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
 echo $INGRESS_GW_ADDRESS
 ```
 
-Test the LLM connectivity
+Run the `curl` below twice
 ```
 curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v \ -H content-type:application/json -H x-api-key:$ANTHROPIC_API_KEY -H "anthropic-version: 2023-06-01" -d '{
   "model": "claude-sonnet-4-5",
@@ -432,10 +452,22 @@ curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v \ -H content-type:application/json 
 }' | jq
 ```
 
+You'll see an output similar to the below:
+```
+* upload completely sent off: 292 bytes
+< HTTP/1.1 429 Too Many Requests
+< content-type: text/plain
+< x-ratelimit-limit: 1
+< x-ratelimit-remaining: 0
+< x-ratelimit-reset: 21
+< content-length: 19
+< date: Tue, 06 Jan 2026 14:04:24 GMT
+```
+
 If you check the agentgateway Pod logs, you'll see the rate limit error.
 
 ```
-kubectl logs -n gloo-system AGENTGATEWAY_POD --tail=50 | grep -i "request\|error\|anthropic"
+kubectl logs -n agentgateway-system AGENTGATEWAY_POD --tail=50 | grep -i "request\|error\|anthropic"
 ```
 
 ```
