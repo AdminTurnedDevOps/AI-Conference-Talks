@@ -381,13 +381,65 @@ To log into the Grafana UI:
 
 ## Rate Limiting
 
+```
+kubectl apply -f- <<EOF
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: anthropic-ratelimit
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      name: claude
+  rateLimit:
+    local:
+      tokenBucket:
+        maxTokens: 1
+        tokensPerFill: 1
+        fillInterval: 100s
+EOF
+```
+
+Capture the LB IP of the service. This will be used later to send a request to the LLM.
+```
+export INGRESS_GW_ADDRESS=$(kubectl get svc -n gloo-system agentgateway -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
+echo $INGRESS_GW_ADDRESS
+
+8. Test the LLM connectivity
+```
+curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v \ -H content-type:application/json -H x-api-key:$ANTHROPIC_API_KEY -H "anthropic-version: 2023-06-01" -d '{
+  "model": "claude-sonnet-4-5",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a skilled cloud-native network engineer."
+    },
+    {
+      "role": "user",
+      "content": "Write me a paragraph containing the best way to think about Istio Ambient Mesh"
+    }
+  ]
+}' | jq
+```
+
+9. If you check the agentgateway Pod logs, you'll see the rate limit error.
+
+```
+kubectl logs -n gloo-system AGENTGATEWAY_POD --tail=50 | grep -i "request\|error\|anthropic"
+```
+
+```
+2025-10-20T16:08:59.886579Z     info    request gateway=kgateway-gloo/agentgateway listener=http route=gloo-system/claude src.addr=10.142.0.25:42187 http.method=POST http.host=34.148.15.158 http.path=/anthropic http.version=HTTP/1.1 http.status=429 error="rate limit exceeded" duration=0ms
+```
 
 
 ## Prompt Guards
 
 ```
 kubectl apply -f - <<EOF
-apiVersion: gateway.kgateway.dev/v1alpha1
+apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
   name: credit-guard-prompt-guard
