@@ -235,6 +235,7 @@ Password: `kubectl get secret kube-prometheus-grafana -n monitoring -o jsonpath=
 
 ## LLM Connectivity
 
+1. Add a secret for your LLM provider
 ```
 kubectl apply -f- <<EOF
 apiVersion: v1
@@ -250,6 +251,7 @@ stringData:
 EOF
 ```
 
+2. Create a Gateway for AI traffic
 ```
 kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
@@ -271,6 +273,7 @@ spec:
 EOF
 ```
 
+3. Specify the backend so the gateway knows what to route to. In this case, it's a Model
 ```
 kubectl apply -f - <<EOF
 apiVersion: agentgateway.dev/v1alpha1
@@ -292,6 +295,7 @@ spec:
 EOF
 ```
 
+4. Create the route so the Model can be reached
 ```
 kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
@@ -324,11 +328,13 @@ spec:
 EOF
 ```
 
+5. Capture the IP address of the gateway
 ```
 export INGRESS_GW_ADDRESS=$(kubectl get svc -n agentgateway-system agentgateway-route -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
 echo $INGRESS_GW_ADDRESS
 ```
 
+6. Test the gateway
 ```
 curl "$INGRESS_GW_ADDRESS:8080/anthropic" -H content-type:application/json -H "anthropic-version: 2023-06-01" -d '{
   "messages": [
@@ -409,6 +415,7 @@ To log into the Grafana UI:
 
 ## Rate Limiting
 
+1. Create a rate limiting policy that specifies only 1 token every minute for testing purposes
 ```
 kubectl apply -f- <<EOF
 apiVersion: agentgateway.dev/v1alpha1
@@ -429,13 +436,13 @@ spec:
 EOF
 ```
 
-Capture the LB IP of the service. This will be used later to send a request to the LLM.
+2. Capture the LB IP of the service. This will be used later to send a request to the LLM.
 ```
 export INGRESS_GW_ADDRESS=$(kubectl get svc -n agentgateway-system agentgateway-route -o jsonpath="{.status.loadBalancer.ingress[0]['hostname','ip']}")
 echo $INGRESS_GW_ADDRESS
 ```
 
-Run the `curl` below twice
+3. Run the `curl` below twice
 ```
 curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v \ -H content-type:application/json -H x-api-key:$ANTHROPIC_API_KEY -H "anthropic-version: 2023-06-01" -d '{
   "model": "claude-sonnet-4-5",
@@ -452,7 +459,7 @@ curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v \ -H content-type:application/json 
 }' | jq
 ```
 
-You'll see an output similar to the below:
+You'll see an output similar to the below on the second run:
 ```
 * upload completely sent off: 292 bytes
 < HTTP/1.1 429 Too Many Requests
@@ -478,6 +485,7 @@ kubectl logs -n agentgateway-system AGENTGATEWAY_POD --tail=50 | grep -i "reques
 
 ## Prompt Guards
 
+1. Create a prompt guard that blocks anything that matches "credit card"
 ```
 kubectl apply -f - <<EOF
 apiVersion: agentgateway.dev/v1alpha1
@@ -505,12 +513,13 @@ spec:
 EOF
 ```
 
+2. Try asking the LLM about credit cards
 ```
 curl "$INGRESS_GW_ADDRESS:8080/anthropic" -v -H content-type:application/json -H x-api-key:$ANTHROPIC_API_KEY -H "anthropic-version: 2023-06-01" -d '{
   "messages": [
     {
       "role": "system",
-      "content": "You are a skilled cloud-native network engineer."
+      "content": "You are a skilled finance expert."
     },
     {
       "role": "user",
@@ -533,7 +542,7 @@ You'll see an output similar to the below:
 
 ## MCP Auth
 
-1. Apply the Gateway
+1. Create a gateway for the MCP server you deployed
 ```
 kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
@@ -555,7 +564,7 @@ spec:
 EOF
 ```
 
-2. Apply the backend
+2. Apply the backend so the gateway knows what to route to. In this case, it's an MCP server
 ```
 kubectl apply -f - <<EOF
 apiVersion: agentgateway.dev/v1alpha1
@@ -575,7 +584,7 @@ spec:
 EOF
 ```
 
-3. Apply the route
+3. Apply the route so the MCP Server can be reached
 ```
 kubectl apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
@@ -597,7 +606,7 @@ spec:
 EOF
 ```
 
-4. Capture the IP
+4. Capture the IP of the gateway
 ```
 export GATEWAY_IP=$(kubectl get svc mcp-gateway -n agentgateway-system -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo $GATEWAY_IP
@@ -613,9 +622,9 @@ npx modelcontextprotocol/inspector#0.16.2
 http://YOUR_ALB_IP:3000/mcp
 ```
 
-You should now be able to see the connection without any security
+You should now be able to see the connection without any security. This means that the MCP Server is wide open.
 
-7. For security, add the gateway policy
+7. To implement auth security, add a gateway policy
 ```
 kubectl apply -f- <<EOF
 apiVersion: agentgateway.dev/v1alpha1
