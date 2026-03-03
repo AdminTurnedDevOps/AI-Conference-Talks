@@ -512,8 +512,8 @@ EOF
 1. Create a rate limit rule that targets the `HTTPRoute` you just created
 ```
 kubectl apply -f - <<EOF
-apiVersion: agentgateway.dev/v1alpha1
-kind: AgentgatewayPolicy
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
 metadata:
   name: traffic-policy
   namespace: agentgateway-system
@@ -592,8 +592,8 @@ You should now be able to see the connection without any security. This means th
 4. To implement auth security, add a gateway policy
 ```
 kubectl apply -f- <<EOF
-apiVersion: agentgateway.dev/v1alpha1
-kind: AgentgatewayPolicy
+apiVersion: enterpriseagentgateway.solo.io/v1alpha1
+kind: EnterpriseAgentgatewayPolicy
 metadata:
   name: jwt
   namespace: agentgateway-system
