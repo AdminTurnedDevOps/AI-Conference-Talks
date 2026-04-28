@@ -457,7 +457,7 @@ EOF
 
 3. Test the `curl` again
 ```
-curl "$INGRESS_GW_ADDRESS:8082/anthropic" -v -H content-type:application/json -H "anthropic-version: 2023-06-01" -d '{
+curl "$GATEWAY_IP:8082/anthropic" -v -H content-type:application/json -H "anthropic-version: 2023-06-01" -d '{
   "messages": [
     {
       "role": "system",
@@ -638,7 +638,7 @@ spec:
       authorization:
         policy:
           matchExpressions:
-            - 'mcp.tool.name == ""'
+            - 'mcp.tool.name == "add"'
 EOF
 ```
 
@@ -665,11 +665,3 @@ spec:
             - 'mcp.tool.name == "add"'
 EOF
 ```
-
-### Kagent iDP
-
-1. Log in: http://34.23.205.21/ke/
-Username: admin
-Password: 
-
-iDP docs: https://docs.solo.io/kagent-enterprise/docs/latest/security/idp/
